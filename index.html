@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Fantastic Fixed-Gear Calculator</title>
+  <style>
+    :root{--pink:#800000;--dark:#222;--muted:#e9e9e9}
+    body{font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;background:#fff;color:var(--dark);display:flex;align-items:flex-start;justify-content:center;padding:40px}
+    .card{width:420px;border:1px solid #ddd;background:white;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,0.06);overflow:hidden}
+    header{padding:28px 22px;text-align:center}
+    header h1{font-size:44px;margin:0;letter-spacing:1px;font-weight:800}
+    .hero{background:linear-gradient(90deg, #fff 0,#fff 100%);padding:8px 16px;text-align:center;color:white}
+    .banner{background:var(--pink);color:white;padding:10px 12px;font-weight:700}
+    .content{display:grid;grid-template-columns:1fr 170px;padding:18px;gap:16px}
+    label{display:block;font-size:13px;margin:6px 0;color:#333}
+    select,input[type=number],input[type=text]{width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:4px;font-size:14px}
+    .wheel-wrap{display:flex;align-items:center;justify-content:center}
+    .wheel{width:140px;height:140px}
+    .analysis{padding:12px 18px;background:#fafafa;border-top:1px solid #eee}
+    .row{display:flex;gap:8px;align-items:center}
+    .result{display:flex;gap:10px;flex-wrap:wrap}
+    .pill{background:#fff;border:1px solid #eee;padding:6px 8px;border-radius:4px;font-weight:700}
+    .equiv{padding:12px;background:#f5f5f5;border-top:1px solid #eee}
+    .equiv .tag{display:inline-block;padding:6px 8px;margin:4px;border-radius:4px;background:white;border:1px solid #ffdfe9;color:var(--pink);font-weight:700}
+    .speeds{padding:12px;background:#fff;border-top:1px solid #eee}
+    .speed-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .speed-cell{background:#fafafa;padding:8px;border-radius:4px;text-align:center;font-size:13px}
+    footer{padding:10px;text-align:center;color:#bbb;font-size:13px}
+    .small{font-size:12px;color:#666}
+    .controls{display:flex;gap:8px;align-items:center}
+    .checkbox-row{margin-top:6px}
+    .unit-toggle{display:flex;gap:8px;align-items:center}
+    @media(max-width:520px){body{padding:12px}.card{width:100%}}
+body {
+  background-image: url('https://uploads.onecompiler.io/43wnrh32r/43wnqtcux/vzxcvdj.jpg');
+}
+  </style>
+</head>
+<body>
+  <div class="card" id="app">
+    <header>
+      <h1>AKUMA FIXED GEAR</h1>
+      <div class="banner">AKUMAFXD FIXED GEAR CALCULATOR!</div>
+    </header>
+
+    <div class="content">
+      <div>
+        <div class="controls">
+          <div style="flex:1">
+            <label for="chainring">Chain ring</label>
+            <select id="chainring"></select>
+          </div>
+          <div style="width:92px">
+            <label for="sprocket">Rear sprocket</label>
+            <select id="sprocket"></select>
+          </div>
+        </div>
+
+        <div style="margin-top:10px">
+          <label for="tire">Tire</label>
+          <select id="tire"></select>
+        </div>
+
+        <div class="checkbox-row">
+          <label><input type="checkbox" id="ambi"> Ambidextrous skid</label>
+        </div>
+
+        <div style="margin-top:12px" class="small">Units: <label class="unit-toggle"><input type="radio" name="units" value="imperial"> imperial</label> <label class="unit-toggle"><input type="radio" name="units" value="metric" checked> metric</label></div>
+
+        <div style="margin-top:12px">
+          <div style="font-weight:700;margin-bottom:6px">Analysis</div>
+          <div class="row">
+            <div class="pill">Ratio: <span id="ratio">--</span></div>
+            <div class="pill">Skid patch: <span id="skid">--</span></div>
+            <div class="pill">Development: <span id="dev">--</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="wheel-wrap">
+        <svg class="wheel" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="g" x1="0" x2="1">
+              <stop offset="0" stop-color="#fff"/>
+              <stop offset="1" stop-color="#f7f7f7"/>
+            </linearGradient>
+          </defs>
+          <circle cx="100" cy="100" r="88" fill="url(#g)" stroke="#ddd" stroke-width="2" />
+          <g id="spokes" stroke="#ccc" stroke-width="2"></g>
+          <circle cx="100" cy="100" r="12" fill="#fff" stroke="#bbb"/>
+          <g transform="translate(160,100)"><circle r="18" fill="#222"/><path d="M-10 -6 l14 0 l0 12 l-14 0 z" fill="#fff"/></g>
+        </svg>
+      </div>
+
+    </div>
+
+    <div class="analysis">
+      <div style="font-weight:700">Equivalent gear ±2%</div>
+      <div class="equiv" id="equiv"></div>
+    </div>
+
+    <div class="speeds">
+      <div style="font-weight:700;margin-bottom:6px">Cadence / Speed</div>
+      <div class="speed-grid" id="speeds"></div>
+    </div>
+
+    <footer>© AKUMAFXD 2025</footer>
+  </div>
+
+  <script>
+    const chainOptions = Array.from({length:31},(_,i)=>30+i);
+    const sprocketOptions = Array.from({length:20},(_,i)=>9+i);
+    const tires = [
+      {label:'700x23 (622-23)', diameter_mm:622 + 23*2},
+      {label:'700x25 (622-25)', diameter_mm:622 + 25*2},
+      {label:'700x28 (622-28)', diameter_mm:622 + 28*2},
+      {label:'27x1 1/4 (630-25)', diameter_mm:630 + 25*2},
+      {label:'26x1.95 (559-50)', diameter_mm:559 + 50*2}
+    ];
+
+    const app = document.getElementById('app');
+    const chainEl = document.getElementById('chainring');
+    const sprocketEl = document.getElementById('sprocket');
+    const tireEl = document.getElementById('tire');
+    const ratioEl = document.getElementById('ratio');
+    const skidEl = document.getElementById('skid');
+    const devEl = document.getElementById('dev');
+    const equivEl = document.getElementById('equiv');
+    const ambiEl = document.getElementById('ambi');
+    const speedsEl = document.getElementById('speeds');
+
+    chainOptions.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n+' t';chainEl.appendChild(o)});
+    sprocketOptions.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n+' t';sprocketEl.appendChild(o)});
+    tires.forEach(t=>{const o=document.createElement('option');o.value=t.diameter_mm;o.textContent=t.label;tireEl.appendChild(o)});
+
+    chainEl.value = 46;
+    sprocketEl.value = 18;
+    tireEl.selectedIndex = 0;
+
+    function gcd(a,b){return b==0?Math.abs(a):gcd(b,a%b)}
+
+    function compute(){
+      const chain = parseInt(chainEl.value,10);
+      const sprocket = parseInt(sprocketEl.value,10);
+      const tireDiaMm = parseFloat(tireEl.value);
+      const units = document.querySelector('input[name="units"]:checked').value;
+      const ambi = ambiEl.checked;
+
+      const ratio = chain / sprocket;
+      ratioEl.textContent = ratio.toFixed(2);
+
+      const circumference_m = Math.PI * (tireDiaMm/1000);
+      const development_m = circumference_m * ratio;
+
+      if(units==='metric'){
+        devEl.textContent = (development_m*100).toFixed(2) + ' cm';
+      } else {
+        const inches = development_m * 39.3700787;
+        devEl.textContent = inches.toFixed(2) + ' inches';
+      }
+
+      let patches = sprocket / gcd(chain,sprocket);
+      if(ambi) patches = patches * 2;
+      skidEl.textContent = patches;
+
+      equivEl.innerHTML = '';
+      const targetDev = development_m;
+      const choices = [];
+      for(let c of chainOptions){
+        for(let s of sprocketOptions){
+          const dev = Math.PI * (tireDiaMm/1000) * (c/s);
+          const pct = Math.abs(dev - targetDev) / targetDev;
+          if(pct <= 0.02){
+            choices.push({c,s,pct});
+          }
+        }
+      }
+      choices.sort((a,b)=>a.pct-b.pct);
+      if(choices.length===0){equivEl.textContent='No close equivalents';}
+      else{
+        for(let q of choices.slice(0,24)){
+          const d = document.createElement('span'); d.className='tag'; d.textContent = `${q.c}×${q.s}`; equivEl.appendChild(d);
+        }
+      }
+
+      const cadences = [50,60,70,80,90,100,110,120,130];
+      speedsEl.innerHTML='';
+      for(let rpm of cadences){
+        const m_per_min = development_m * rpm;
+        const kmh = (m_per_min * 60) / 1000;
+        const mph = kmh * 0.621371;
+        const cell = document.createElement('div'); cell.className='speed-cell';
+        cell.innerHTML = `<div style="font-weight:700">${Math.round(units==='metric'?kmh:mph)} ${units==='metric'?'km/h':'mph'}</div><div class="small">@${rpm} rpm</div>`;
+        speedsEl.appendChild(cell);
+      }
+
+      const spokes = document.getElementById('spokes');
+      spokes.innerHTML='';
+      const spokeCount = 16;
+      for(let i=0;i<spokeCount;i++){
+        const angle = (360/spokeCount)*i;
+        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1','100');line.setAttribute('y1','100');
+        const x2 = 100 + Math.cos((angle+ratio*12)*Math.PI/180)*78;
+        const y2 = 100 + Math.sin((angle+ratio*12)*Math.PI/180)*78;
+        line.setAttribute('x2',x2);line.setAttribute('y2',y2);
+        spokes.appendChild(line);
+      }
+    }
+
+    document.querySelectorAll('select,input').forEach(el=>el.addEventListener('change',compute));
+    document.querySelectorAll('input[name="units"]').forEach(el=>el.addEventListener('change',compute));
+
+    compute();
+  </script>
+</body>
+</html>
